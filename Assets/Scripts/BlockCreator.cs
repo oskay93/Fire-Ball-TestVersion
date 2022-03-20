@@ -144,6 +144,7 @@ public class BlockCreator : MonoBehaviour
                 blockPool.Add(block);
 
                 //If Block Has Point Objects, Then Activate Again..
+                if (block.transform.Find("Point") == null) continue;
                 GameObject _childPoint = block.transform.Find("Point").GetChild(0).gameObject;
                 if (_childPoint != null && !_childPoint.activeSelf) _childPoint.SetActive(true);
             }
