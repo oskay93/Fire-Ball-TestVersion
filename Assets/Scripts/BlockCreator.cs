@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-
 //In this class, the map has been created and infinite map function is here.
 public class BlockCreator : MonoBehaviour
 {
@@ -29,6 +28,8 @@ public class BlockCreator : MonoBehaviour
     [SerializeField] float _upperBlockLimitMin = 8;
     [SerializeField] float _lowerBlockLimitMax = -8;
     [SerializeField] float _lowerBlockLimitMin = -14;
+
+    [SerializeField] int _pointSpawnInterval = 10;
     #endregion
 
     public static BlockCreator GetSingleton()
@@ -95,8 +96,13 @@ public class BlockCreator : MonoBehaviour
             zPos++;
             #endregion // Parent Ends
         }
-    }
 
+        GameObject point = Instantiate(pointPrefab, Vector3.zero, pointPrefab.transform.rotation);
+        point.name = "Point";
+        point.transform.position = blockPool[blockCount - 1].transform.position;
+        point.transform.parent = blockPool[blockCount - 1].transform;
+    }
+    
     void Update()
     {
         if (PlayerController.Instance == null || blockPool == null)
@@ -136,6 +142,10 @@ public class BlockCreator : MonoBehaviour
                 block.transform.Find("UpperBlock").transform.localPosition = RandomYPos("U");
                 block.transform.Find("LowerBlock").transform.localPosition = RandomYPos("L");
                 blockPool.Add(block);
+
+                //If Block Has Point Objects, Then Activate Again..
+                GameObject _childPoint = block.transform.Find("Point").GetChild(0).gameObject;
+                if (_childPoint != null && !_childPoint.activeSelf) _childPoint.SetActive(true);
             }
         }
     }
