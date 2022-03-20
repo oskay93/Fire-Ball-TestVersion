@@ -2,10 +2,9 @@
 using UnityEngine;
 
 
-//In this class, the map has been created.
-//You have to edit GetRelativeBlock section to calculate current relative block to cast player rope to hold on
-//Update Block Position section to make infinite map.
-public class BlockCreator : MonoBehaviour {
+//In this class, the map has been created and infinite map function is here.
+public class BlockCreator : MonoBehaviour
+{
 
     #region Variables
     private static BlockCreator singleton = null;
@@ -18,14 +17,23 @@ public class BlockCreator : MonoBehaviour {
     private float lastHeightUpperBlock = 10;
     private int difficulty = 1;
 
-    Camera cam => Camera.main;
+    Camera _cam => Camera.main;
 
-    int currentBlockIndex;
+    int _currentBlockIndex;
+
+    [Tooltip("Player Will Cast Rope After That Amount Of Block")]
+    [SerializeField] int _nextBlockToCastRope = 2;
+
+    [Header("Block Spawning Limits")]
+    [SerializeField] float _upperBlockLimitMax = 14;
+    [SerializeField] float _upperBlockLimitMin = 8;
+    [SerializeField] float _lowerBlockLimitMax = -8;
+    [SerializeField] float _lowerBlockLimitMin = -14;
     #endregion
 
     public static BlockCreator GetSingleton()
     {
-        if(singleton == null)
+        if (singleton == null)
         {
             singleton = new GameObject("_BlockCreator").AddComponent<BlockCreator>();
         }
@@ -39,7 +47,29 @@ public class BlockCreator : MonoBehaviour {
         pointPrefab = pPrefab;
         InstantiateBlocks();
     }
-	
+
+    /// <summary>
+    /// Returns Randomized Vector3 That Is Used For Block's Y Position
+    /// </summary>
+    /// <param name="type">Use "U" For UpperBlock, "L" For LowerBlock</param>
+    /// <returns>Vector3 Random Y Position</returns>
+    Vector3 RandomYPos(string type)
+    {
+        switch (type)
+        {
+            case "U":
+                float randomPosY = Random.Range(_upperBlockLimitMin, _upperBlockLimitMax); // Y Pos Spawn Limits
+                Vector3 spawnPos = new Vector3(0, randomPosY, 0);
+                return spawnPos;
+            case "L":
+                randomPosY = Random.Range(_lowerBlockLimitMin, _lowerBlockLimitMax); // Y Pos Spawn Limits
+                spawnPos = new Vector3(0, randomPosY, 0);
+                return spawnPos;
+            default:
+                return Vector3.zero;
+        }
+    }
+
     public void InstantiateBlocks()
     {
         float zPos = 1;
@@ -47,16 +77,12 @@ public class BlockCreator : MonoBehaviour {
         {
             #region Upper Block
             int randomPrefab = Random.Range(0, blockPrefabs.Length); // Get Random Prefab From The Array
-            float randomPosY = Random.Range(10, 14); // Y Pos Spawn Limits
-            Vector3 spawnPos = new Vector3(0, randomPosY, 0); // Set Y Position Of The Upper Block
-            GameObject upperBlock = Instantiate(blockPrefabs[randomPrefab], spawnPos, Quaternion.identity);
+            GameObject upperBlock = Instantiate(blockPrefabs[randomPrefab], RandomYPos("U"), Quaternion.identity);
             upperBlock.name = "UpperBlock";
             #endregion // Upper Block Ends
 
             #region Lower Block
-            randomPosY = Random.Range(-10, -7); // Y Pos Spawn Limits
-            spawnPos = new Vector3(0, randomPosY, 0); // Set Y Position Of The Lower Block
-            GameObject lowerBlock = Instantiate(blockPrefabs[randomPrefab], spawnPos, Quaternion.identity);
+            GameObject lowerBlock = Instantiate(blockPrefabs[randomPrefab], RandomYPos("L"), Quaternion.identity);
             lowerBlock.name = "LowerBlock";
             #endregion // Lower Block Ends
 
@@ -71,24 +97,28 @@ public class BlockCreator : MonoBehaviour {
         }
     }
 
-    void Update ()
+    void Update()
     {
+        if (PlayerController.Instance == null || blockPool == null)
+        {
+            return;
+        }
+
         if (PlayerController.Instance.IsPlayerReleased)
         {
-            Debug.Log("Next Hook Name = "  + GetRelativeBlock(PlayerController.Instance.transform.position.z).parent.name);
-            UpdateBlockPosition(currentBlockIndex);
+            GetRelativeBlock(PlayerController.Instance.transform.position.z); // Used To Update _currentBlockIndex In Smoother Way.
+            UpdateBlockPosition(_currentBlockIndex);
         }
     }
 
     public Transform GetRelativeBlock(float playerPosZ)
     {
-        //You may need this type of getter to which block are we going to cast our rope into
         foreach (GameObject block in blockPool)
         {
             if (block.transform.position.z == Mathf.Round(playerPosZ))
             {
-                currentBlockIndex = blockPool.IndexOf(block);
-                return blockPool[currentBlockIndex + 2].transform.Find("UpperBlock").transform;
+                _currentBlockIndex = blockPool.IndexOf(block);
+                return blockPool[_currentBlockIndex + _nextBlockToCastRope].transform.Find("UpperBlock").transform;
             }
         }
         return null;
@@ -96,17 +126,15 @@ public class BlockCreator : MonoBehaviour {
 
     public void UpdateBlockPosition(int blockIndex)
     {
-        //Block Pool has been created. Find a proper way to make infite map when it is needed
+        //GetRelativeBlock(PlayerController.Instance.transform.position.z); // Could be used here to update _currentBlockIndex as well
         foreach (GameObject block in blockPool)
         {
             if (blockPool.IndexOf(block) < blockIndex - 1)
             {
                 blockPool.Remove(block);
                 block.transform.position = blockPool[blockPool.Count - 1].transform.position + Vector3.forward;
-                float randomYPos = Random.Range(8, 14);
-                block.transform.Find("UpperBlock").transform.localPosition = new Vector3(0, randomYPos, 0);
-                randomYPos = Random.Range(-10, -6);
-                block.transform.Find("LowerBlock").transform.localPosition = new Vector3(0, randomYPos, 0);
+                block.transform.Find("UpperBlock").transform.localPosition = RandomYPos("U");
+                block.transform.Find("LowerBlock").transform.localPosition = RandomYPos("L");
                 blockPool.Add(block);
             }
         }

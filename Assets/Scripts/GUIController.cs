@@ -11,7 +11,6 @@ public class GUIController : MonoBehaviour
     public GameObject gameOverPanel;
     public GameObject holdStartText;
 
-
     public void HandleRestartButton()
     {
         SceneManager.LoadScene("Game");

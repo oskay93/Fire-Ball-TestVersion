@@ -1,12 +1,5 @@
 ﻿using UnityEngine;
 
-
-//In this section, you have to edit OnPointerDown and OnPointerUp sections to make the game behave in a proper way using hJoint
-//Hint: You may want to Destroy and recreate the hinge Joint on the object. For a beautiful gameplay experience, joint would created after a little while (0.2 seconds f.e.) to create mechanical challege for the player
-//And also create fixed update to make score calculated real time properly.
-//Update FindRelativePosForHingeJoint to calculate the position for you rope to connect dynamically
-//You may add up new functions into this class to make it look more understandable and cosmetically great.
-
 public class PlayerController : MonoBehaviour {
 
     #region Variables
@@ -26,6 +19,7 @@ public class PlayerController : MonoBehaviour {
     private GUIController guiController;
 
     private float score;
+    float _tempScore;
 
     private bool gameOver = false;
 
@@ -33,9 +27,14 @@ public class PlayerController : MonoBehaviour {
 
     bool _isPlayerReleased;
     public bool IsPlayerReleased { get { return _isPlayerReleased; } }
+
+    bool _isPlaying;
+    public bool IsPlaying { get { return _isPlaying; } }
+
+    [SerializeField] float _playerSpeed = 50;
     #endregion
 
-    void Start ()
+    void Start()
     {
         Instance = this;
         BlockCreator.GetSingleton().Initialize(30, blockPrefabs, pointPrefab);
@@ -44,9 +43,8 @@ public class PlayerController : MonoBehaviour {
 	
     public void FindRelativePosForHingeJoint(Vector3 blockPosition)
     {
-        //Update the block position on this line in a proper way to Find Relative position for our blockPosition
         transform.rotation = new Quaternion(0, 0, 0, 0);
-        blockPosition = new Vector3(blockPosition.x, blockPosition.y - 5, blockPosition.z);
+        blockPosition = new Vector3(blockPosition.x, blockPosition.y - 5, blockPosition.z); // 5 is coming from half of the blocks height which is 10
         hJoint.anchor = (blockPosition - transform.position);
         lRenderer.SetPosition(1, hJoint.anchor);
         lRenderer.enabled = true;
@@ -55,6 +53,13 @@ public class PlayerController : MonoBehaviour {
     public void PointerDown()
     {
         Debug.Log("Pointer Down");
+        if (!_isPlaying)
+        {
+            _isPlaying = true;
+            playerRigidbody.isKinematic = false;
+            guiController.holdStartText.SetActive(false);
+        }
+
         _isPlayerReleased = false;
 
         if (hJoint == null)
@@ -64,13 +69,10 @@ public class PlayerController : MonoBehaviour {
         }
 
         JointMotor motor = hJoint.motor;
-        motor.targetVelocity = -100;
-        motor.force = 50;
+        motor.targetVelocity = -(_playerSpeed * 2);
+        motor.force = _playerSpeed;
         hJoint.motor = motor;
         hJoint.useMotor = true;
-
-        //This function works once when player holds on the screen
-        //FILL the behaviour here when player holds on the screen. You may or not call other functions you create here or just fill it here
     }
 
     public void PointerUp()
@@ -80,38 +82,24 @@ public class PlayerController : MonoBehaviour {
 
         Destroy(GetComponent<HingeJoint>());
         lRenderer.enabled = false;
-
-        //This function works once when player takes his/her finger off the screen
-        //Fill the behaviour when player stops holding the finger on the screen.
     }
 
     private void OnCollisionEnter(Collision collision)
     {
+        // Prevents After GameOver Collisions
         if(collision.gameObject.tag.Equals("Block") && !gameOver)
         {
             PointerUp(); //Finishes the game here to stoping holding behaviour
             gameOver = true;
-            guiController.scoreText.text = score.ToString("0.00");
-            //If you know a more modular way to update UI, change the code below
-            if(PlayerPrefs.HasKey("HighScore"))
-            {
-                float highestScore = PlayerPrefs.GetFloat("HighScore");
-                if(score > highestScore)
-                {
-                    PlayerPrefs.SetFloat("HighScore", score);
-                    guiController.highscoreText.text = "HighestScore: " + score.ToString("0.00");
-                }
-                else
-                {
-                    guiController.highscoreText.text = "HighestScore: " + highestScore.ToString("0.00");
-                }
-            }
-            else
-            {
-                PlayerPrefs.SetFloat("HighScore", score);
-                guiController.highscoreText.text = "HighestScore: " + score.ToString("0.00");
-            }
-            guiController.gameOverPanel.SetActive(true);
+            guiController.scoreText.text = score.ToString("0.00"); // Write Score To Game Over Screen
+
+            #region New HighScore System
+            float _highScore = PlayerPrefs.GetFloat("HighScore"); // Get HighScore From Prefab,If No HighScore Exist Then It Is Equal To Zero
+            if (score > _highScore) _highScore = score; // Compare Score And HighScore
+            PlayerPrefs.SetFloat("HighScore", _highScore); // Set Prefab 'HighScore'
+            guiController.highscoreText.text = "HighestScore: " + _highScore.ToString("0.00"); // Write HighScore Text
+            guiController.gameOverPanel.SetActive(true); // Activate Game Over Panel
+            #endregion
         }
     }
     
@@ -132,13 +120,12 @@ public class PlayerController : MonoBehaviour {
     }
     private void FixedUpdate()
     {
-       //Score doesn't set properly since it always tend to update the score. Make a proper way to update the score as player advances
        SetScore();
-        
     }
     public void SetScore()
     {
+        if (_tempScore < score) _tempScore = score;
         score += playerRigidbody.velocity.z * Time.fixedDeltaTime * 0.1f;
-        guiController.realtimeScoreText.text = score.ToString("0.00");
+        guiController.realtimeScoreText.text = _tempScore.ToString("0.00");
     }
 }

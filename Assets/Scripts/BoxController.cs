@@ -1,4 +1,6 @@
-﻿using System.Collections;
+﻿// I didn't use this class anywhere in the project
+
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
