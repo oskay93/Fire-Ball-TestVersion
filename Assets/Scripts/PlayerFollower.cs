@@ -1,12 +1,12 @@
 ﻿//This class is on the main camera to follow player.
 using UnityEngine;
 
-public class PlayerFollower : MonoBehaviour {
-
-    private Transform player;
+public class PlayerFollower : MonoBehaviour
+{
 
     [SerializeField] Vector3 offset;
     Vector3 smoothedPos;
+    private Transform player;
 
     public void SetPosition(Transform p)
     {
@@ -18,7 +18,7 @@ public class PlayerFollower : MonoBehaviour {
     private void Update()
     {
         SetPosition(PlayerController.Instance.transform);
-        if (player == null) return; // If No Player Found, Don't Continue Update
+        if (player == null) return; // If No Player Found, Don't Continue Update Function
         transform.position = smoothedPos;
     }
 }

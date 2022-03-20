@@ -12,8 +12,6 @@ public class PlayerController : MonoBehaviour {
     [SerializeField]
     private Rigidbody playerRigidbody;
     [SerializeField]
-    private PlayerFollower playerFollower;
-    [SerializeField]
     private GameObject pointPrefab;
     [SerializeField]
     private GUIController guiController;
@@ -57,7 +55,7 @@ public class PlayerController : MonoBehaviour {
         {
             _isPlaying = true;
             playerRigidbody.isKinematic = false;
-            guiController.holdStartText.SetActive(false);
+            guiController.ShowHoldStartText(false);
         }
 
         _isPlayerReleased = false;
@@ -68,11 +66,13 @@ public class PlayerController : MonoBehaviour {
             FindRelativePosForHingeJoint(BlockCreator.GetSingleton().GetRelativeBlock(transform.position.z).position);
         }
 
+        #region Joint Motor Settings
         JointMotor motor = hJoint.motor;
         motor.targetVelocity = -(_playerSpeed * 2);
         motor.force = _playerSpeed;
         hJoint.motor = motor;
         hJoint.useMotor = true;
+        #endregion
     }
 
     public void PointerUp()
@@ -90,15 +90,15 @@ public class PlayerController : MonoBehaviour {
         if(collision.gameObject.tag.Equals("Block") && !gameOver)
         {
             PointerUp(); //Finishes the game here to stoping holding behaviour
-            gameOver = true;
-            guiController.scoreText.text = score.ToString("0.00"); // Write Score To Game Over Screen
+            gameOver = true; // Sets Game Over Flag To Tell The Game It Is Game Over
+            guiController.scoreText.text = WriteScoreInFormat(score); // Write Score To Game Over Screen
 
             #region New HighScore System
             float _highScore = PlayerPrefs.GetFloat("HighScore"); // Get HighScore From Prefab,If No HighScore Exist Then It Is Equal To Zero
             if (score > _highScore) _highScore = score; // Compare Score And HighScore
             PlayerPrefs.SetFloat("HighScore", _highScore); // Set Prefab 'HighScore'
-            guiController.highscoreText.text = "HighestScore: " + _highScore.ToString("0.00"); // Write HighScore Text
-            guiController.gameOverPanel.SetActive(true); // Activate Game Over Panel
+            guiController.highscoreText.text = "HighestScore: " + WriteScoreInFormat(_highScore); // Write HighScore Text
+            guiController.ShowGameOverPanel(true); // Activate Game Over Panel
             #endregion
         }
     }
@@ -126,6 +126,11 @@ public class PlayerController : MonoBehaviour {
     {
         if (_tempScore < score) _tempScore = score;
         score += playerRigidbody.velocity.z * Time.fixedDeltaTime * 0.1f;
-        guiController.realtimeScoreText.text = _tempScore.ToString("0.00");
+        guiController.realtimeScoreText.text = WriteScoreInFormat(_tempScore);
+    }
+
+    public string WriteScoreInFormat(float newScore)
+    {
+        return newScore.ToString("0.00");
     }
 }
